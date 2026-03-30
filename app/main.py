@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import engine, Base
 from app.routers import events_router, alerts_router, facilities_router
+import app.models
 
 settings = get_settings()
 
