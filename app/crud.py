@@ -70,12 +70,12 @@ async def get_facilities_summary(db: AsyncSession):
             select(func.count()).where(Alert.facility_id == f.id, Alert.status == "triggered")
         )).scalar()
         result.append({
-            "id": f.id,
-            "name": f.name,
+            # "id": f.id,
+            # "name": f.name,
             "type": f.type,
             "tier": f.tier,
             "location": f.location,
-            "device_count": device_count,
-            "active_alert_count": active_alerts,
+            # "device_count": device_count,
+            # "active_alert_count": active_alerts,
         })
     return result
