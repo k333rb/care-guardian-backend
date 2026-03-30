@@ -6,7 +6,6 @@ from app.database import engine, Base
 
 settings = get_settings()
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup — create all tables if they don't exist
@@ -35,7 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/health", tags=["Health Check"])
 async def health():
