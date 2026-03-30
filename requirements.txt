@@ -1,0 +1,11 @@
+fastapi[standard]
+sqlalchemy[asyncio]
+asyncpg
+alembic
+pydantic-settings
+python-dotenv
+opencv-python-headless
+numpy
+httpx
+pytest
+pytest-asyncio
