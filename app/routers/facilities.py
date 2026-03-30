@@ -36,9 +36,6 @@ async def list_facilities(
     - **facility_id** (query): Alternative facility filter
     - Returns all facilities if no filter provided
     """
-    summaries = await get_facilities_summary(
-        session=session,
-        facility_id=facility_id,
-    )
+    summaries = await get_facilities_summary(db=session)
     
     return summaries

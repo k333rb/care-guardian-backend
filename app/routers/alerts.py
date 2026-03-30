@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Header, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from app.database import get_db
-from app.crud import get_alerts, resolve_alert
+from app.crud import get_alerts_by_facility
 from app.schemas.alerts import AlertResponse
 from app.config import get_settings
 
@@ -44,7 +44,7 @@ async def list_alerts(
     - **skip**: Pagination offset
     - **limit**: Pagination limit (max 100)
     """
-    alerts = await get_alerts(
+    alerts = await get_alerts_by_facility(
         session=session,
         facility_id=facility_id,
         skip=skip,

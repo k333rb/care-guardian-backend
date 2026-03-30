@@ -9,7 +9,7 @@ class AlertResponse(BaseModel):
     device_id: str = Field(..., description="Device that triggered alert")
     status: str = Field(
         ..., 
-        description="Alert status: 'active', 'acknowledged', 'resolved'"
+        description="Alert status: 'triggered', 'resolved'"
     )
     confidence: float = Field(
         ...,

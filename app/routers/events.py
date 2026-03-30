@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from app.database import get_db
-from app.crud import get_events
+from app.crud import get_events_by_facility
 from app.config import get_settings
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -43,7 +43,7 @@ async def list_events(
     - **skip**: Pagination offset
     - **limit**: Pagination limit (max 100)
     """
-    events = await get_events(
+    events = await get_events_by_facility(
         session=session,
         facility_id=facility_id,
         skip=skip,

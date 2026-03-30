@@ -35,8 +35,8 @@ async def detect_frame(
         img_bytes = base64.b64decode(payload.image_base64)
         np_arr = np.frombuffer(img_bytes, np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        if frame is None:
-            raise ValueError("Invalid image")
+        # if frame is None:
+        #     raise ValueError("Invalid image")
     except Exception:
         raise HTTPException(status_code=422, detail="Invalid base64 image")
 
