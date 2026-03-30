@@ -8,7 +8,6 @@ import app.models
 
 settings = get_settings()
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup — create all tables if they don't exist
