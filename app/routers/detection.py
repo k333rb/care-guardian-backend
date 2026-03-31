@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.services.detection_service import run_detection
+from app.services.alert_service import notify
 from app import crud
+from app.config import get_settings
 from pydantic import BaseModel
 from datetime import datetime, timezone
 import base64
@@ -57,13 +59,18 @@ async def detect_frame(
     # 4. Trigger alert if fall detected
     alert_triggered = False
     if result.label == "fall":
-        await crud.create_alert(
+        settings = get_settings()
+        alert = await crud.create_alert(
             db,
             device_id=payload.device_id,
             facility_id=x_facility_id,
             event_id=event.id,
             confidence=result.confidence,
         )
+        delivery_method = await notify(alert, recipient_phone=settings.default_test_phone)
+        # update alert.delivery_method with returned channel
+        alert.delivery_method = delivery_method
+        await db.flush()
         alert_triggered = True
 
     return DetectionResponse(

@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     sms_enabled: bool = False
     sms_api_key: str = ""
     sms_sender_name: str = "CareGuardian"
+    default_test_phone: str = ""
 
     # ── Camera ────────────────────────────────────────
     camera_source: str = "0"
@@ -41,6 +42,11 @@ class Settings(BaseSettings):
 
     # ── CORS ──────────────────────────────────────────
     cors_origins: str = "http://localhost:3000"
+
+    # ── ZAVU (Fall Detection API) ───────────────────────
+    zavu_api_key: str = ""
+    zavu_enabled: bool = False
+    fall_confidence_threshold: float = 0.75
 
     @property
     def cors_origins_list(self) -> list[str]:
