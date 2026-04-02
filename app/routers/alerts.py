@@ -45,12 +45,10 @@ async def list_alerts(
     - **limit**: Pagination limit (max 100)
     """
     alerts = await get_alerts_by_facility(
-        session=session,
+        db=session,
         facility_id=facility_id,
         skip=skip,
         limit=limit,
-        start_date=start_date,
-        end_date=end_date,
     )
     
     return alerts
