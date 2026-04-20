@@ -1,0 +1,173 @@
+[1mdiff --cc app/crud.py[m
+[1mindex 9d4ed78,b7676cf..0000000[m
+[1m--- a/app/crud.py[m
+[1m+++ b/app/crud.py[m
+[36m@@@ -38,83 -75,88 +75,143 @@@[m [masync def create_alert[m
+      await db.flush()[m
+      return alert[m
+  [m
+[32m++<<<<<<< HEAD[m
+[32m +# Resolve alert[m
+[32m +async def resolve_alert(db: AsyncSession, alert_id: str):[m
+[32m +    result = await db.execute(select(Alert).where(Alert.id == alert_id))[m
+[32m +    alert = result.scalar_one_or_none()[m
+[32m +    if not alert:[m
+[32m +        return None[m
+[32m +    alert.status = "resolved"[m
+[32m +    alert.resolved_at = datetime.now(timezone.utc)[m
+[32m +    await db.flush()[m
+[32m +    return alert[m
+[32m +[m
+[32m +# Get events by facility (paginated)[m
+[32m +async def get_events_by_facility(db: AsyncSession, facility_id: str, skip: int = 0, limit: int = 50):[m
+[32m +    result = await db.execute([m
+[32m +        select(DetectionEvent)[m
+[32m +        .where(DetectionEvent.facility_id == facility_id)[m
+[32m +        .order_by(DetectionEvent.created_at.desc())[m
+[32m +        .offset(skip).limit(limit)[m
+[32m +    )[m
+[32m +    return result.scalars().all()[m
+[32m++=======[m
+[32m++>>>>>>> feature/khervee-tests[m
+  [m
+[31m- # Get alerts by facility (paginated)[m
+[31m- async def get_alerts_by_facility(db: AsyncSession, facility_id: str, skip: int = 0, limit: int = 50):[m
+[31m-     result = await db.execute([m
+[32m+ async def get_alerts_by_household([m
+[32m+     db: AsyncSession,[m
+[32m+     household_id: str,[m
+[32m+     skip: int = 0,[m
+[32m+     limit: int = 50,[m
+[32m+     start_date: Optional[datetime] = None,[m
+[32m+     end_date: Optional[datetime] = None,[m
+[32m+ ):[m
+[32m+     q = ([m
+          select(Alert)[m
+[31m-         .where(Alert.facility_id == facility_id)[m
+[31m-         .order_by(Alert.triggered_at.desc())[m
+[31m-         .offset(skip).limit(limit)[m
+[32m+         .join(Event, Event.id == Alert.event_id)[m
+[32m+         .join(Device, Device.id == Event.device_id)[m
+[32m+         .where(Device.household_id == household_id)[m
+[32m+         .order_by(Alert.timestamp.desc())[m
+      )[m
+[32m+     if start_date:[m
+[32m+         q = q.where(Alert.timestamp >= start_date)[m
+[32m+     if end_date:[m
+[32m+         q = q.where(Alert.timestamp <= end_date)[m
+[32m+ [m
+[32m+     result = await db.execute(q.offset(skip).limit(limit))[m
+      return result.scalars().all()[m
+  [m
+[31m- # Get all facilities with device count + active alert count[m
+[31m- async def get_facilities_summary(db: AsyncSession):[m
+[31m-     facilities = (await db.execute(select(Facility).where(Facility.is_active == True))).scalars().all()[m
+[32m+ [m
+[32m+ async def resolve_alert(db: AsyncSession, alert_id: str):[m
+[32m+     result = await db.execute(select(Alert).where(Alert.id == alert_id))[m
+[32m+     alert = result.scalar_one_or_none()[m
+[32m+     if alert:[m
+[32m+         alert.status = "resolved"[m
+[32m+         alert.resolved_at = datetime.now(timezone.utc)[m
+[32m+         await db.flush()[m
+[32m+     return alert[m
+[32m+ [m
+[32m+ [m
+[32m+ async def get_alert_by_id(db: AsyncSession, alert_id: str):[m
+[32m+     result = await db.execute(select(Alert).where(Alert.id == alert_id))[m
+[32m+     return result.scalar_one_or_none()[m
+[32m+ [m
+[32m+ [m
+[32m+ # Households[m
+[32m+ [m
+[32m+ async def get_households_summary(db: AsyncSession):[m
+[32m+     households = ([m
+[32m+         await db.execute(select(Household))[m
+[32m+     ).scalars().all()[m
+[32m+ [m
+      result = [][m
+[31m-     for f in facilities:[m
+[31m-         device_count = (await db.execute([m
+[31m-             select(func.count()).where(Device.facility_id == f.id)[m
+[31m-         )).scalar()[m
+[31m-         active_alerts = (await db.execute([m
+[31m-             select(func.count()).where(Alert.facility_id == f.id, Alert.status == "triggered")[m
+[31m-         )).scalar()[m
+[32m+     for h in households:[m
+[32m+         device_count = ([m
+[32m+             await db.execute([m
+[32m+                 select(func.count(Device.id)).where(Device.household_id == h.id)[m
+[32m+             )[m
+[32m+         ).scalar()[m
+[32m+ [m
+[32m+         active_alerts = ([m
+[32m+             await db.execute([m
+[32m+                 select(func.count(Alert.id))[m
+[32m+                 .join(Event, Event.id == Alert.event_id)[m
+[32m+                 .join(Device, Device.id == Event.device_id)[m
+[32m+                 .where(Device.household_id == h.id, Alert.status == "sent")[m
+[32m+             )[m
+[32m+         ).scalar()[m
+[32m+ [m
+          result.append({[m
+[31m-             # "id": f.id,[m
+[31m-             # "name": f.name,[m
+[31m-             "type": f.type,[m
+[31m-             "tier": f.tier,[m
+[31m-             "location": f.location,[m
+[31m-             # "device_count": device_count,[m
+[31m-             # "active_alert_count": active_alerts,[m
+[32m+             "id": h.id,[m
+[32m+             "address": h.address,[m
+[32m+             "latitude": h.latitude,[m
+[32m+             "longitude": h.longitude,[m
+[32m+             "device_count": device_count,[m
+[32m+             "active_alert_count": active_alerts,[m
+          })[m
+[32m++<<<<<<< HEAD[m
+[32m +    [m
+[32m +    return result[m
+[32m +[m
+[32m +# Get single facility summary with stats[m
+[32m +async def get_facility_summary(db: AsyncSession, facility_id: str):[m
+[32m +    total_events = (await db.execute([m
+[32m +        select(func.count()).where(DetectionEvent.facility_id == facility_id)[m
+[32m +    )).scalar()[m
+[32m +    fall_count = (await db.execute([m
+[32m +        select(func.count()).where([m
+[32m +            DetectionEvent.facility_id == facility_id,[m
+[32m +            DetectionEvent.label == "fall"[m
+[32m +        )[m
+[32m +    )).scalar()[m
+[32m +    avg_confidence = (await db.execute([m
+[32m +        select(func.avg(DetectionEvent.confidence))[m
+[32m +        .where(DetectionEvent.facility_id == facility_id)[m
+[32m +    )).scalar() or 0.0[m
+[32m +    alert_count = (await db.execute([m
+[32m +        select(func.count()).where(Alert.facility_id == facility_id)[m
+[32m +    )).scalar()[m
+[32m +    return {[m
+[32m +        "facility_id": facility_id,[m
+[32m +        "total_events": total_events,[m
+[32m +        "fall_count": fall_count,[m
+[32m +        "alert_rate": round(fall_count / total_events, 2) if total_events else 0.0,[m
+[32m +        "avg_confidence": round(avg_confidence, 4),[m
+[32m +        "active_alerts": alert_count,[m
+[31m-     }[m
+[32m++    }[m
+[32m++=======[m
+[32m+     return result[m
+[32m+ [m
+[32m+ [m
+[32m+ # Users[m
+[32m+ [m
+[32m+ async def get_users_by_household(db: AsyncSession, household_id: str):[m
+[32m+     from app.models.household_user import HouseholdUser[m
+[32m+     result = await db.execute([m
+[32m+         select(User)[m
+[32m+         .join(HouseholdUser, HouseholdUser.user_id == User.id)[m
+[32m+         .where(HouseholdUser.household_id == household_id)[m
+[32m+     )[m
+[31m -    return result.scalars().all()[m
+[32m++    return result.scalars().all()[m
+[32m++>>>>>>> feature/khervee-tests[m
