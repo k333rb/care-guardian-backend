@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from app.config import get_settings
 from app.database import engine, Base
 from app.routers import events_router, alerts_router, facilities_router
@@ -43,6 +45,14 @@ app.include_router(events_router)
 app.include_router(alerts_router)
 app.include_router(facilities_router)
 app.include_router(detection.router)
+
+# ── Exception handlers ────────────────────────────────────
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": str(exc), "code": "validation_error"}
+    )
 
 
 @app.get("/health", tags=["Health Check"])

@@ -4,7 +4,7 @@ Router for facility management.
 from fastapi import APIRouter, Depends, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.crud import get_facilities_summary
+from app.crud import get_facilities_summary, get_facility_summary
 from app.schemas.facilities import FacilitySummaryResponse
 from app.config import get_settings
 
@@ -39,3 +39,14 @@ async def list_facilities(
     summaries = await get_facilities_summary(db=session)
     
     return summaries
+
+
+@router.get("/{facility_id}/summary")
+async def facility_summary(
+    facility_id: str,
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Get detailed summary for a specific facility including event stats and alert metrics.
+    """
+    return await get_facility_summary(db=session, facility_id=facility_id)

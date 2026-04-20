@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Header, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from app.database import get_db
-from app.crud import get_alerts_by_facility
+from app.crud import get_alerts_by_facility, resolve_alert
 from app.schemas.alerts import AlertResponse
 from app.config import get_settings
 

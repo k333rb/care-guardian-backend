@@ -13,6 +13,8 @@ import cv2
 
 router = APIRouter(prefix="/detect-frame", tags=["Detection"])
 
+MAX_FRAME_BYTES = 5 * 1024 * 1024  # 5MB
+
 class FrameRequest(BaseModel):
     image_base64: str
     device_id: str
@@ -35,6 +37,8 @@ async def detect_frame(
     # 1. Decode base64 → cv2 frame
     try:
         img_bytes = base64.b64decode(payload.image_base64)
+        if len(img_bytes) > MAX_FRAME_BYTES:
+            raise HTTPException(status_code=413, detail="Frame too large, max 5MB")
         np_arr = np.frombuffer(img_bytes, np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         # if frame is None:
@@ -81,3 +85,4 @@ async def detect_frame(
         event_id=event.id,
         alert_triggered=alert_triggered
     )
+    
