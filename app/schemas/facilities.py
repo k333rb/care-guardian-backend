@@ -1,13 +1,16 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 
 
-class FacilitySummaryResponse(BaseModel):
-    """Summary response for a facility with device and alert counts."""
-    id: str = Field(..., description="Facility ID")
-    name: str = Field(..., description="Facility name")
-    device_count: int = Field(..., ge=0, description="Number of monitoring devices")
+class HouseholdSummaryResponse(BaseModel):
+    """Summary of a household with device and active alert counts."""
+    id: str = Field(..., description="Household ID")
+    address: str = Field(..., description="Household address")
+    latitude: Optional[float] = Field(default=None, description="GPS latitude")
+    longitude: Optional[float] = Field(default=None, description="GPS longitude")
+    device_count: int = Field(..., ge=0, description="Number of cameras installed")
     active_alert_count: int = Field(
         ...,
         ge=0,
-        description="Number of currently active (non-resolved) alerts"
+        description="Number of unresolved alerts (status=sent)"
     )

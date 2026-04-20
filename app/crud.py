@@ -1,81 +1,162 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.models.detection_event import DetectionEvent
+from app.models.event import Event
 from app.models.alert import Alert
-from app.models.facility import Facility
+from app.models.household import Household
 from app.models.device import Device
+from app.models.user import User
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
-# Detection Events
-async def create_detection_event(db: AsyncSession, device_id: str, facility_id: str, label: str, confidence: float, frame_ts: datetime):
-    event = DetectionEvent(
-        id=str(uuid.uuid4()),
+
+# Events
+
+async def create_event(
+    db: AsyncSession,
+    device_id: str,
+    type: str,
+    confidence_score: float,
+    timestamp: datetime,
+):
+    event = Event(
+        id=f"evt-{uuid.uuid4()}",
         device_id=device_id,
-        facility_id=facility_id,
-        label=label,
-        confidence=confidence,
+        type=type,
+        confidence_score=confidence_score,
         monitoring_type="camera_ai",
-        frame_ts=frame_ts,
+        timestamp=timestamp,
     )
     db.add(event)
     await db.flush()
     return event
 
+
+async def get_events_by_household(
+    db: AsyncSession,
+    household_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+):
+    q = (
+        select(Event)
+        .join(Device, Device.id == Event.device_id)
+        .where(Device.household_id == household_id)
+        .order_by(Event.timestamp.desc())
+    )
+    if start_date:
+        q = q.where(Event.timestamp >= start_date)
+    if end_date:
+        q = q.where(Event.timestamp <= end_date)
+
+    result = await db.execute(q.offset(skip).limit(limit))
+    return result.scalars().all()
+
+
 # Alerts
-async def create_alert(db: AsyncSession, device_id: str, facility_id: str, event_id: str, confidence: float, delivery_method: str = "app"):
+
+async def create_alert(
+    db: AsyncSession,
+    event_id: str,
+    user_id: str,
+    delivery_method: str = "app",
+):
     alert = Alert(
-        id=str(uuid.uuid4()),
-        device_id=device_id,
-        facility_id=facility_id,
+        id=f"alrt-{uuid.uuid4()}",
         event_id=event_id,
-        status="triggered",
-        confidence=confidence,
+        user_id=user_id,
+        status="sent",
         delivery_method=delivery_method,
-        triggered_at=datetime.now(timezone.utc),
+        timestamp=datetime.now(timezone.utc),
     )
     db.add(alert)
     await db.flush()
     return alert
 
-# Get events by facility (paginated)
-async def get_events_by_facility(db: AsyncSession, facility_id: str, skip: int = 0, limit: int = 50):
-    result = await db.execute(
-        select(DetectionEvent)
-        .where(DetectionEvent.facility_id == facility_id)
-        .order_by(DetectionEvent.created_at.desc())
-        .offset(skip).limit(limit)
-    )
-    return result.scalars().all()
 
-# Get alerts by facility (paginated)
-async def get_alerts_by_facility(db: AsyncSession, facility_id: str, skip: int = 0, limit: int = 50):
-    result = await db.execute(
+async def get_alerts_by_household(
+    db: AsyncSession,
+    household_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+):
+    q = (
         select(Alert)
-        .where(Alert.facility_id == facility_id)
-        .order_by(Alert.triggered_at.desc())
-        .offset(skip).limit(limit)
+        .join(Event, Event.id == Alert.event_id)
+        .join(Device, Device.id == Event.device_id)
+        .where(Device.household_id == household_id)
+        .order_by(Alert.timestamp.desc())
     )
+    if start_date:
+        q = q.where(Alert.timestamp >= start_date)
+    if end_date:
+        q = q.where(Alert.timestamp <= end_date)
+
+    result = await db.execute(q.offset(skip).limit(limit))
     return result.scalars().all()
 
-# Get all facilities with device count + active alert count
-async def get_facilities_summary(db: AsyncSession):
-    facilities = (await db.execute(select(Facility).where(Facility.is_active == True))).scalars().all()
+
+async def resolve_alert(db: AsyncSession, alert_id: str):
+    result = await db.execute(select(Alert).where(Alert.id == alert_id))
+    alert = result.scalar_one_or_none()
+    if alert:
+        alert.status = "resolved"
+        alert.resolved_at = datetime.now(timezone.utc)
+        await db.flush()
+    return alert
+
+
+async def get_alert_by_id(db: AsyncSession, alert_id: str):
+    result = await db.execute(select(Alert).where(Alert.id == alert_id))
+    return result.scalar_one_or_none()
+
+
+# Households
+
+async def get_households_summary(db: AsyncSession):
+    households = (
+        await db.execute(select(Household))
+    ).scalars().all()
+
     result = []
-    for f in facilities:
-        device_count = (await db.execute(
-            select(func.count()).where(Device.facility_id == f.id)
-        )).scalar()
-        active_alerts = (await db.execute(
-            select(func.count()).where(Alert.facility_id == f.id, Alert.status == "triggered")
-        )).scalar()
+    for h in households:
+        device_count = (
+            await db.execute(
+                select(func.count(Device.id)).where(Device.household_id == h.id)
+            )
+        ).scalar()
+
+        active_alerts = (
+            await db.execute(
+                select(func.count(Alert.id))
+                .join(Event, Event.id == Alert.event_id)
+                .join(Device, Device.id == Event.device_id)
+                .where(Device.household_id == h.id, Alert.status == "sent")
+            )
+        ).scalar()
+
         result.append({
-            "id": f.id,
-            "name": f.name,
-            "type": f.type,
-            "tier": f.tier,
-            "location": f.location,
+            "id": h.id,
+            "address": h.address,
+            "latitude": h.latitude,
+            "longitude": h.longitude,
             "device_count": device_count,
             "active_alert_count": active_alerts,
         })
     return result
+
+
+# Users
+
+async def get_users_by_household(db: AsyncSession, household_id: str):
+    from app.models.household_user import HouseholdUser
+    result = await db.execute(
+        select(User)
+        .join(HouseholdUser, HouseholdUser.user_id == User.id)
+        .where(HouseholdUser.household_id == household_id)
+    )
+    return result.scalars().all()

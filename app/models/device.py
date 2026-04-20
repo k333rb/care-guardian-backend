@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import uuid
 from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, func
@@ -15,22 +13,23 @@ class Device(Base):
         primary_key=True,
         default=lambda: f"dev-{uuid.uuid4()}"
     )
-    facility_id: Mapped[str] = mapped_column(
+    household_id: Mapped[str] = mapped_column(
         String,
-        ForeignKey("facilities.id"),
+        ForeignKey("households.id"),
         nullable=False,
         index=True
     )
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    device_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    # webcam | rtsp | http
     stream_type: Mapped[str] = mapped_column(String(20), default="webcam")
     source_url: Mapped[str] = mapped_column(String(500), default="0")
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # active | inactive | offline
+    status: Mapped[str] = mapped_column(String(20), default="active")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now()
     )
 
     # Relationships
-    facility: Mapped["Facility"] = relationship("Facility", back_populates="devices")
-    detection_events: Mapped[list] = relationship("DetectionEvent", back_populates="device")
-    alerts: Mapped[list] = relationship("Alert", back_populates="device")
+    household: Mapped["Household"] = relationship("Household", back_populates="devices")
+    events: Mapped[list] = relationship("Event", back_populates="device")
