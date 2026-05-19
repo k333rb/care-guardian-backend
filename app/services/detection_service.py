@@ -11,6 +11,7 @@ import os
 from ultralytics import YOLO
 
 from app.crud import create_event, create_alert
+from app.services.ws_manager import manager
 
 
 # ======================
@@ -102,7 +103,16 @@ async def handle_detection(frame, session, device_id, household_id):
             household_id=household_id,
         )
         alert_triggered = True
-
+        
+        # Real-time broadcast
+        await manager.broadcast({
+            "type": "fall_alert",
+            "event_id": event.id,
+            "device_id": device_id,
+            "confidence": result.confidence,
+            "label": result.label,
+        })
+        
     # 4. Return result
     return {
         "label": result.label,
