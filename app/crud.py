@@ -75,29 +75,6 @@ async def create_alert(
     await db.flush()
     return alert
 
-<<<<<<< HEAD
-# Resolve alert
-async def resolve_alert(db: AsyncSession, alert_id: str):
-    result = await db.execute(select(Alert).where(Alert.id == alert_id))
-    alert = result.scalar_one_or_none()
-    if not alert:
-        return None
-    alert.status = "resolved"
-    alert.resolved_at = datetime.now(timezone.utc)
-    await db.flush()
-    return alert
-
-# Get events by facility (paginated)
-async def get_events_by_facility(db: AsyncSession, facility_id: str, skip: int = 0, limit: int = 50):
-    result = await db.execute(
-        select(DetectionEvent)
-        .where(DetectionEvent.facility_id == facility_id)
-        .order_by(DetectionEvent.created_at.desc())
-        .offset(skip).limit(limit)
-    )
-    return result.scalars().all()
-=======
->>>>>>> feature/khervee-tests
 
 async def get_alerts_by_household(
     db: AsyncSession,
@@ -170,37 +147,6 @@ async def get_households_summary(db: AsyncSession):
             "device_count": device_count,
             "active_alert_count": active_alerts,
         })
-<<<<<<< HEAD
-    
-    return result
-
-# Get single facility summary with stats
-async def get_facility_summary(db: AsyncSession, facility_id: str):
-    total_events = (await db.execute(
-        select(func.count()).where(DetectionEvent.facility_id == facility_id)
-    )).scalar()
-    fall_count = (await db.execute(
-        select(func.count()).where(
-            DetectionEvent.facility_id == facility_id,
-            DetectionEvent.label == "fall"
-        )
-    )).scalar()
-    avg_confidence = (await db.execute(
-        select(func.avg(DetectionEvent.confidence))
-        .where(DetectionEvent.facility_id == facility_id)
-    )).scalar() or 0.0
-    alert_count = (await db.execute(
-        select(func.count()).where(Alert.facility_id == facility_id)
-    )).scalar()
-    return {
-        "facility_id": facility_id,
-        "total_events": total_events,
-        "fall_count": fall_count,
-        "alert_rate": round(fall_count / total_events, 2) if total_events else 0.0,
-        "avg_confidence": round(avg_confidence, 4),
-        "active_alerts": alert_count,
-    }
-=======
     return result
 
 
@@ -214,4 +160,3 @@ async def get_users_by_household(db: AsyncSession, household_id: str):
         .where(HouseholdUser.household_id == household_id)
     )
     return result.scalars().all()
->>>>>>> feature/khervee-tests

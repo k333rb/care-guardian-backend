@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     api_url: str = "http://127.0.0.1:8000"
     
     # ── CORS ──────────────────────────────────────────
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:8000"
 
     @property
     def cors_origins_list(self) -> list[str]:
